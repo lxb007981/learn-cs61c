@@ -18,8 +18,11 @@ BIT_OPS_PROG = bit_ops
 LFSR_OBJS = lfsr.o test_lfsr.o
 LFSR_PROG = lfsr
 
+LIST_OBJS = list.o test_list.o
+LIST_PROG = list
+
 VECTOR_OBJS=vector.o vector_test.o
-VECTOR_PROG=vector_test
+VECTOR_PROG=vector-test
 
 BINARIES=$(VECTOR_PROG) $(BIT_OPS_PROG) $(LFSR_PROG)
 
@@ -31,11 +34,20 @@ $(BIT_OPS_PROG): $(BIT_OPS_OBJS)
 $(LFSR_PROG): $(LFSR_OBJS)
 	$(CC) $(CFLAGS) -g -o $(LFSR_PROG) $(LFSR_OBJS) $(LDFLAGS)
 
+$(LIST_PROG): $(LIST_OBJS)
+	$(CC) $(CFLAGS) -g -o $(LIST_PROG) $(LIST_OBJS) $(LDFLAGS)
+
+$(VECTOR_PROG): $(VECTOR_OBJS)
+	$(CC) $(CFLAGS) -g -o $(VECTOR_PROG) $(VECTOR_OBJS) $(LDFLAGS)
+
 lfsr.c: lfsr.h
 test_lfsr.c: lfsr.h
 
 bit_ops.c: bit_ops.h
 test_bit_ops.c: bit_ops.h
+
+list.c: list.h
+test_list.c: list.h
 
 .c.o:
 	$(CC) -c $(CFLAGS) $<
