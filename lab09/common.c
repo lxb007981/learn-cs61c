@@ -50,12 +50,27 @@ long long int sum_simd(unsigned int vals[NUM_ELEMS]) {
 	__m128i _127 = _mm_set1_epi32(127);		// This is a vector with 127s in it... Why might you need this?
 	long long int result = 0;				   // This is where you should put your final result!
 	/* DO NOT DO NOT DO NOT DO NOT WRITE ANYTHING ABOVE THIS LINE. */
-	
+	int fourInt[] = {0, 0, 0, 0};
+	__m128i arrayResult = _mm_setzero_si128();
+	__m128i operand = _mm_setzero_si128();
+	__m128i mask = _mm_setzero_si128();
 	for(unsigned int w = 0; w < OUTER_ITERATIONS; w++) {
-		/* YOUR CODE GOES HERE */
+		/* YOUR CODE GOES HERE */ 
+		arrayResult = _mm_setzero_si128();
+		unsigned int i = 0;
+		for(; i + 4 <= NUM_ELEMS; i += 4){
+			operand = _mm_loadu_si128((__m128i *)&vals[i]);
+			mask = _mm_cmpgt_epi32(operand, _127);
+			operand = _mm_and_si128(operand, mask);
+			arrayResult = _mm_add_epi32(operand, arrayResult);
+		}
+		_mm_storeu_si128((__m128i *)&fourInt, arrayResult);
 
 		/* You'll need a tail case. */
-
+		for (; i < NUM_ELEMS; ++i) {
+			result += vals[i] > 127 ? vals[i] : 0;
+		}
+		result += (fourInt[0] + fourInt[1] + fourInt[2] + fourInt[3]);
 	}
 	clock_t end = clock();
 	printf("Time taken: %Lf s\n", (long double)(end - start) / CLOCKS_PER_SEC);
@@ -66,11 +81,42 @@ long long int sum_simd_unrolled(unsigned int vals[NUM_ELEMS]) {
 	clock_t start = clock();
 	__m128i _127 = _mm_set1_epi32(127);
 	long long int result = 0;
+
+	int fourInt[] = {0, 0, 0, 0};
+	__m128i arrayResult = _mm_setzero_si128();
+	__m128i operand = _mm_setzero_si128();
+	__m128i mask = _mm_setzero_si128();
 	for(unsigned int w = 0; w < OUTER_ITERATIONS; w++) {
 		/* COPY AND PASTE YOUR sum_simd() HERE */
 		/* MODIFY IT BY UNROLLING IT */
 
+		arrayResult = _mm_setzero_si128();
+		unsigned int i = 0;
+		for(; i + 4 * 4 <= NUM_ELEMS / 4 * 4; i += 4 * 4){
+			operand = _mm_loadu_si128((__m128i *)&vals[i]);
+			mask = _mm_cmpgt_epi32(operand, _127);
+			operand = _mm_and_si128(operand, mask);
+			arrayResult = _mm_add_epi32(operand, arrayResult);
+			operand = _mm_loadu_si128((__m128i *)&vals[i + 4]);
+			mask = _mm_cmpgt_epi32(operand, _127);
+			operand = _mm_and_si128(operand, mask);
+			arrayResult = _mm_add_epi32(operand, arrayResult);
+			operand = _mm_loadu_si128((__m128i *)&vals[i + 8]);
+			mask = _mm_cmpgt_epi32(operand, _127);
+			operand = _mm_and_si128(operand, mask);
+			arrayResult = _mm_add_epi32(operand, arrayResult);
+			operand = _mm_loadu_si128((__m128i *)&vals[i + 12]);
+			mask = _mm_cmpgt_epi32(operand, _127);
+			operand = _mm_and_si128(operand, mask);
+			arrayResult = _mm_add_epi32(operand, arrayResult);
+		}
+		_mm_storeu_si128((__m128i *)&fourInt, arrayResult);
+
 		/* You'll need 1 or maybe 2 tail cases here. */
+		for (; i < NUM_ELEMS; ++i) {
+			result += vals[i] > 127 ? vals[i] : 0;
+		}
+		result += (fourInt[0] + fourInt[1] + fourInt[2] + fourInt[3]);
 
 	}
 	clock_t end = clock();
