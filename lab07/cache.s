@@ -29,7 +29,7 @@ main:	li	a0, 256		# array size in BYTES (power of 2 < array size)
 ##################################################################################################
 
 	jal	accessWords	# lw/sw
-	#jal	accessBytes	# lb/sb
+	# jal	accessBytes	# lb/sb
 
 	li	a0,10		# exit
 	ecall
