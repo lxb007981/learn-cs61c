@@ -6,12 +6,14 @@
  * the given hash function and comparison function.
  */
 HashTable *createHashTable(int size, unsigned int (*hashFunction)(void *),
-                           int (*equalFunction)(void *, void *)) {
+                           int (*equalFunction)(void *, void *))
+{
   int i = 0;
   HashTable *newTable = malloc(sizeof(HashTable));
   newTable->size = size;
   newTable->data = malloc(sizeof(struct HashBucket *) * size);
-  for (i = 0; i < size; ++i) {
+  for (i = 0; i < size; ++i)
+  {
     newTable->data[i] = NULL;
   }
   newTable->hashFunction = hashFunction;
@@ -27,21 +29,51 @@ HashTable *createHashTable(int size, unsigned int (*hashFunction)(void *),
  * Because we only need a set data structure for this spell checker,
  * we can use the string as both the key and data.
  */
-void insertData(HashTable *table, void *key, void *data) {
+void insertData(HashTable *table, void *key, void *data)
+{
   // -- TODO --
   // HINT:
   // 1. Find the right hash bucket location with table->hashFunction.
   // 2. Allocate a new hash bucket struct.
-  // 3. Append to the linked list or create it if it does not yet exist. 
+  // 3. Append to the linked list or create it if it does not yet exist.
+  unsigned int loc = table->hashFunction(key);
+  struct HashBucket *bucketp = (struct HashBucket *)malloc(sizeof(struct HashBucket));
+  bucketp->key = key;
+  bucketp->data = data;
+  if (table->data[loc] == NULL)
+  {
+    table->data[loc] = bucketp;
+  }
+  else
+  {
+    struct HashBucket *workp = table->data[loc];
+    struct HashBucket *nextp = table->data[loc]->next;
+    while (nextp != NULL)
+    {
+      workp = nextp;
+      nextp = workp->next;
+    }
+    workp->next = bucketp;
+  }
 }
 
 /*
  * This returns the corresponding data for a given key.
  * It returns NULL if the key is not found. 
  */
-void *findData(HashTable *table, void *key) {
+void *findData(HashTable *table, void *key)
+{
   // -- TODO --
   // HINT:
   // 1. Find the right hash bucket with table->hashFunction.
   // 2. Walk the linked list and check for equality with table->equalFunction.
+  unsigned int loc = table->hashFunction(key);
+  struct HashBucket *workp = table->data[loc];
+  while(workp != NULL){
+    if((table->equalFunction)(key, workp->key) != 0){
+      return workp->data;
+    }
+    workp = workp->next;
+  }
+  return NULL;
 }

@@ -11,4 +11,5 @@ extern void readDictionary(char *dictName);
 
 extern void processInput();
 
+extern int findWord(int wordStart, int wordEnd, const char *c);
 #endif
