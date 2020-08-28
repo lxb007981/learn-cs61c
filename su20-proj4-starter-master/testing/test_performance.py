@@ -5,7 +5,8 @@ for your new tests/classes/python files or else they might be skipped.
 """
 # from utils import *
 import time
-
+import numc as nc
+from pytest import approx
 """
 - We will test you on your performance on add, sub, abs, neg, mul, and pow, so make sure to test these
 yourself! We will also test your implementation on matrices on different sizes. It is normal if
@@ -106,4 +107,20 @@ class TestPowPerformance:
 
     def test_large_pow(self):
         # TODO: YOUR CODE HERE
-        pass
+        size = 4
+        mat1 = nc.Matrix(size, size, 0.3)
+        nc_start = time.time()
+        mat2 = mat1 ** 20
+        for i in range(size):
+            for j in range(size):
+                assert mat2[i][j] == approx(9.584399981118684)
+        mat3 = mat1 ** 50
+        for i in range(size):
+            for j in range(size):
+                assert mat3[i][j] == approx(2275.1095375005348)
+        mat1 = mat1 ** 100
+        for i in range(size):
+            for j in range(size):
+                assert mat1[i][j] == approx(20704493.630503587)        
+        nc_end = time.time()
+        print('{} Seconds'.format(nc_end - nc_start))

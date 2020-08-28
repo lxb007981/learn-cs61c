@@ -315,7 +315,7 @@ int mul_matrix(matrix *result, matrix *mat1, matrix *mat2)
         return -1;
     }
     if (result != mat1 && result != mat2)
-    { 
+    {
         /*
         fill_matrix(result, 0.0);
         int i, j, k;
@@ -412,6 +412,7 @@ int pow_matrix(matrix *result, matrix *mat, int pow)
         return 0;
     }
     */
+    /* naive implementation + omp
     int max_num_of_threads = omp_get_max_threads();
     matrix *results[max_num_of_threads];
     set_eye(result);
@@ -425,14 +426,34 @@ int pow_matrix(matrix *result, matrix *mat, int pow)
         set_eye(results[i]);
     }
     omp_set_num_threads(8);
-#pragma omp parallel
+    #pragma omp parallel
     {
-#pragma omp for
+    #pragma omp for
         for (int i = 0; i < pow; i++)
             mul_matrix(results[omp_get_thread_num()], results[omp_get_thread_num()], mat);
-#pragma omp critical
+    #pragma omp critical
         mul_matrix(result, result, results[omp_get_thread_num()]);
     }
+    */
+    matrix *mat_contribute;
+    int allocate_failed = allocate_matrix(&mat_contribute, mat->rows, mat->cols);
+    if (allocate_failed)
+    {
+        return -1;
+    }
+    copy_matrix(mat_contribute, mat);
+    set_eye(result);
+    while (pow > 0)
+    {
+        if (pow & 1)
+        {
+            mul_matrix(result, result, mat_contribute);
+        }
+        mul_matrix(mat_contribute, mat_contribute, mat_contribute);
+        pow >>= 1;
+    }
+    free(mat_contribute->data);
+    free(mat_contribute);
     return 0;
 }
 
@@ -510,9 +531,6 @@ int abs_matrix(matrix *result, matrix *mat)
     __m256d res3;
     __m256d res4;
     __m256d mask;
-    __m256d negMask;
-    __m256d zero = _mm256_set1_pd(0.0);
-    __m256d neg = _mm256_set1_pd(-1.0);
 
     int unroll = 4;
     int stride = unroll * 4;
@@ -523,6 +541,7 @@ int abs_matrix(matrix *result, matrix *mat)
 #pragma omp for
         for (int i = 0; i <= ompSize; i += stride)
         {
+            /* naive implementation
             d1 = _mm256_loadu_pd(&mat1_d[i]);
             mask = _mm256_cmp_pd(zero, d1, 14);
             negMask = _mm256_and_pd(neg, mask);
@@ -546,6 +565,24 @@ int abs_matrix(matrix *result, matrix *mat)
             negMask = _mm256_and_pd(neg, mask);
             res4 = _mm256_mul_pd(d1, negMask);
             res4 = _mm256_max_pd(d1, res4);
+            */
+
+           // bit trick
+            d1 = _mm256_loadu_pd(&mat1_d[i]);
+            mask = _mm256_set1_pd(-0.0);
+            res1 = _mm256_and_pd(d1, mask);
+
+            d1 = _mm256_loadu_pd(&mat1_d[i]);
+            mask = _mm256_set1_pd(-0.0);
+            res2 = _mm256_and_pd(d1, mask);
+
+            d1 = _mm256_loadu_pd(&mat1_d[i]);
+            mask = _mm256_set1_pd(-0.0);
+            res3 = _mm256_and_pd(d1, mask);
+
+            d1 = _mm256_loadu_pd(&mat1_d[i]);
+            mask = _mm256_set1_pd(-0.0);
+            res4 = _mm256_and_pd(d1, mask);
 
             _mm256_storeu_pd(&result_d[i], res1);
             _mm256_storeu_pd(&result_d[i + 4], res2);

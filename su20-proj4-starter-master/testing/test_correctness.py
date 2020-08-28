@@ -308,7 +308,7 @@ class TestPowCorrectness:
         for i in range(size):
             for j in range(size):
                 assert mat1[i][j] == 155520000000000.0
-    '''
+    
     def test_large_pow(self):
         # TODO: YOUR CODE HERE
         size = 3000
@@ -325,7 +325,7 @@ class TestPowCorrectness:
         for i in range(size):
             for j in range(size):
                 assert mat1[i][j] == 2592000000000000.0
-    '''
+    
 class TestGetCorrectness:
     def test_get(self):
         # TODO: YOUR CODE HERE
