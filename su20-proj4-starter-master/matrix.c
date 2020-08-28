@@ -38,6 +38,7 @@ double rand_double(double low, double high)
 void rand_matrix(matrix *result, unsigned int seed, double low, double high)
 {
     srand(seed);
+    /*
     for (int i = 0; i < result->rows; i++)
     {
         for (int j = 0; j < result->cols; j++)
@@ -45,8 +46,15 @@ void rand_matrix(matrix *result, unsigned int seed, double low, double high)
             set(result, i, j, rand_double(low, high));
         }
     }
+    */
+#pragma omp parallel for
+    for (int i = 0; i < result->rows * result->cols; ++i)
+    {
+        double range = (high - low);
+        double div = RAND_MAX / range;
+        result->data[i] = low + (rand() / div);
+    }
 }
-
 /*
  * Allocates space for a matrix struct pointed to by the double pointer mat with
  * `rows` rows and `cols` columns. You should also allocate memory for the data array
@@ -164,6 +172,7 @@ void fill_matrix(matrix *mat, double val)
 {
     /* TODO: YOUR CODE HERE */
     long size = (long)(mat->cols * mat->rows);
+#pragma omp parallel for
     for (int i = 0; i < size; ++i)
     {
         mat->data[i] = val;
@@ -183,9 +192,46 @@ int add_matrix(matrix *result, matrix *mat1, matrix *mat2)
         double *result_d = result->data;
         double *mat1_d = mat1->data;
         double *mat2_d = mat2->data;
-        for (int i = 0; i < size; ++i)
+        __m256d d1;
+        __m256d d2;
+        __m256d res1;
+        __m256d res2;
+        __m256d res3;
+        __m256d res4;
+        int unroll = 4;
+        int stride = unroll * 4;
+        omp_set_num_threads(8);
+        int ompSize = size / stride * stride - stride;
+#pragma omp parallel private(d1, d2, res1, res2, res3, res4)
         {
-            result_d[i] = mat1_d[i] + mat2_d[i];
+#pragma omp for
+            for (int i = 0; i <= ompSize; i += stride)
+            {
+                d1 = _mm256_loadu_pd(&mat1_d[i]);
+                d2 = _mm256_loadu_pd(&mat2_d[i]);
+                res1 = _mm256_add_pd(d1, d2);
+
+                d1 = _mm256_loadu_pd(&mat1_d[i + 4]);
+                d2 = _mm256_loadu_pd(&mat2_d[i + 4]);
+                res2 = _mm256_add_pd(d1, d2);
+
+                d1 = _mm256_loadu_pd(&mat1_d[i + 8]);
+                d2 = _mm256_loadu_pd(&mat2_d[i + 8]);
+                res3 = _mm256_add_pd(d1, d2);
+
+                d1 = _mm256_loadu_pd(&mat1_d[i + 12]);
+                d2 = _mm256_loadu_pd(&mat2_d[i + 12]);
+                res4 = _mm256_add_pd(d1, d2);
+
+                _mm256_storeu_pd(&result_d[i], res1);
+                _mm256_storeu_pd(&result_d[i + 4], res2);
+                _mm256_storeu_pd(&result_d[i + 8], res3);
+                _mm256_storeu_pd(&result_d[i + 12], res4);
+            }
+        }
+        for (int k = size / stride * stride; k < size; ++k)
+        {
+            result_d[k] = mat1_d[k] + mat2_d[k];
         }
         return 0;
     }
@@ -205,9 +251,46 @@ int sub_matrix(matrix *result, matrix *mat1, matrix *mat2)
         double *result_d = result->data;
         double *mat1_d = mat1->data;
         double *mat2_d = mat2->data;
-        for (int i = 0; i < size; ++i)
+        __m256d d1;
+        __m256d d2;
+        __m256d res1;
+        __m256d res2;
+        __m256d res3;
+        __m256d res4;
+        int unroll = 4;
+        int stride = unroll * 4;
+        omp_set_num_threads(8);
+        int ompSize = size / stride * stride - stride;
+#pragma omp parallel private(d1, d2, res1, res2, res3, res4)
         {
-            result_d[i] = mat1_d[i] - mat2_d[i];
+#pragma omp for
+            for (int i = 0; i <= ompSize; i += stride)
+            {
+                d1 = _mm256_loadu_pd(&mat1_d[i]);
+                d2 = _mm256_loadu_pd(&mat2_d[i]);
+                res1 = _mm256_sub_pd(d1, d2);
+
+                d1 = _mm256_loadu_pd(&mat1_d[i + 4]);
+                d2 = _mm256_loadu_pd(&mat2_d[i + 4]);
+                res2 = _mm256_sub_pd(d1, d2);
+
+                d1 = _mm256_loadu_pd(&mat1_d[i + 8]);
+                d2 = _mm256_loadu_pd(&mat2_d[i + 8]);
+                res3 = _mm256_sub_pd(d1, d2);
+
+                d1 = _mm256_loadu_pd(&mat1_d[i + 12]);
+                d2 = _mm256_loadu_pd(&mat2_d[i + 12]);
+                res4 = _mm256_sub_pd(d1, d2);
+
+                _mm256_storeu_pd(&result_d[i], res1);
+                _mm256_storeu_pd(&result_d[i + 4], res2);
+                _mm256_storeu_pd(&result_d[i + 8], res3);
+                _mm256_storeu_pd(&result_d[i + 12], res4);
+            }
+        }
+        for (int k = size / stride * stride; k < size; ++k)
+        {
+            result_d[k] = mat1_d[k] - mat2_d[k];
         }
         return 0;
     }
@@ -249,6 +332,7 @@ int mul_matrix(matrix *result, matrix *mat1, matrix *mat2)
             free(tmp);
             return 0;
         }
+        else return -1;
     }
 
     return 0;
@@ -266,11 +350,40 @@ int pow_matrix(matrix *result, matrix *mat, int pow)
     {
         return -1;
     }
-    set_eye(result);
-    for (int i = 0; i < pow; ++i)
+    /*
     {
-        mul_matrix(result, result, mat);
+        set_eye(result);
+        for (int i = 0; i < pow; ++i)
+        {
+            mul_matrix(result, result, mat);
+        }
+        return 0;
     }
+    */
+    int max_num_of_threads = omp_get_max_threads();
+    matrix *results[max_num_of_threads];
+    set_eye(result);
+    for (int i = 0; i < max_num_of_threads; ++i)
+    {
+        int allocate_failed = allocate_matrix(&results[i], mat->rows, mat->cols);
+        if (allocate_failed)
+        {
+            return -1;
+        }
+        set_eye(results[i]);
+    }
+#pragma omp parallel
+    {
+#pragma omp for
+        for (int i = 0; i < pow; i++)
+            mul_matrix(results[omp_get_thread_num()], results[omp_get_thread_num()], mat);
+#pragma omp critical
+        for (int i = 0; i < max_num_of_threads; ++i)
+        {
+            mul_matrix(result, result, results[i]);
+        }
+    }
+    
     return 0;
 }
 
@@ -286,9 +399,44 @@ int neg_matrix(matrix *result, matrix *mat)
         return -1;
     }
     int size = result->rows * result->cols;
-    for (int i = 0; i < size; ++i)
+    double *result_d = result->data;
+    double *mat1_d = mat->data;
+    __m256d d1;
+    __m256d res1;
+    __m256d res2;
+    __m256d res3;
+    __m256d res4;
+    __m256d mask = _mm256_set1_pd(-1.0);
+    int unroll = 4;
+    int stride = unroll * 4;
+    omp_set_num_threads(8);
+    int ompSize = size / stride * stride - stride;
+#pragma omp parallel private(d1, res1, res2, res3, res4)
     {
-        result->data[i] = -1.0 * mat->data[i];
+#pragma omp for
+        for (int i = 0; i <= ompSize; i += stride)
+        {
+            d1 = _mm256_loadu_pd(&mat1_d[i]);
+            res1 = _mm256_mul_pd(d1, mask);
+
+            d1 = _mm256_loadu_pd(&mat1_d[i + 4]);
+            res2 = _mm256_mul_pd(d1, mask);
+
+            d1 = _mm256_loadu_pd(&mat1_d[i + 8]);
+            res3 = _mm256_mul_pd(d1, mask);
+
+            d1 = _mm256_loadu_pd(&mat1_d[i + 12]);
+            res4 = _mm256_mul_pd(d1, mask);
+
+            _mm256_storeu_pd(&result_d[i], res1);
+            _mm256_storeu_pd(&result_d[i + 4], res2);
+            _mm256_storeu_pd(&result_d[i + 8], res3);
+            _mm256_storeu_pd(&result_d[i + 12], res4);
+        }
+    }
+    for (int k = size / stride * stride; k < size; ++k)
+    {
+        result_d[k] = -1.0 * mat1_d[k];
     }
     return 0;
 }
@@ -305,11 +453,62 @@ int abs_matrix(matrix *result, matrix *mat)
         return -1;
     }
     int size = result->rows * result->cols;
-    double tmp;
-    for (int i = 0; i < size; ++i)
+    double *result_d = result->data;
+    double *mat1_d = mat->data;
+    __m256d d1;
+    __m256d res1;
+    __m256d res2;
+    __m256d res3;
+    __m256d res4;
+    __m256d mask;
+    __m256d negMask;
+    __m256d zero = _mm256_set1_pd(0.0);
+    __m256d neg = _mm256_set1_pd(-1.0);
+
+    int unroll = 4;
+    int stride = unroll * 4;
+    omp_set_num_threads(8);
+    int ompSize = size / stride * stride - stride;
+#pragma omp parallel private(d1, res1, res2, res3, res4)
     {
-        tmp = mat->data[i];
-        result->data[i] = tmp > 0 ? tmp : -1.0 * tmp;
+#pragma omp for
+        for (int i = 0; i <= ompSize; i += stride)
+        {
+            d1 = _mm256_loadu_pd(&mat1_d[i]);
+            mask = _mm256_cmp_pd(zero, d1, 14);
+            negMask = _mm256_and_pd(neg, mask);
+            res1 = _mm256_mul_pd(d1, negMask);
+            res1 = _mm256_max_pd(d1, res1);
+
+            d1 = _mm256_loadu_pd(&mat1_d[i + 4]);
+            mask = _mm256_cmp_pd(zero, d1, 14);
+            negMask = _mm256_and_pd(neg, mask);
+            res2 = _mm256_mul_pd(d1, negMask);
+            res2 = _mm256_max_pd(d1, res2);
+
+            d1 = _mm256_loadu_pd(&mat1_d[i + 8]);
+            mask = _mm256_cmp_pd(zero, d1, 14);
+            negMask = _mm256_and_pd(neg, mask);
+            res3 = _mm256_mul_pd(d1, negMask);
+            res3 = _mm256_max_pd(d1, res3);
+
+            d1 = _mm256_loadu_pd(&mat1_d[i + 12]);
+            mask = _mm256_cmp_pd(zero, d1, 14);
+            negMask = _mm256_and_pd(neg, mask);
+            res4 = _mm256_mul_pd(d1, negMask);
+            res4 = _mm256_max_pd(d1, res4);
+
+            _mm256_storeu_pd(&result_d[i], res1);
+            _mm256_storeu_pd(&result_d[i + 4], res2);
+            _mm256_storeu_pd(&result_d[i + 8], res3);
+            _mm256_storeu_pd(&result_d[i + 12], res4);
+        }
+    }
+    int tmp;
+    for (int k = size / stride * stride; k < size; ++k)
+    {
+        tmp = mat1_d[k];
+        result_d[k] = tmp > 0 ? tmp : -1.0 * tmp;
     }
     return 0;
 }
@@ -317,6 +516,7 @@ int abs_matrix(matrix *result, matrix *mat)
 void set_eye(matrix *mat)
 {
     int size = mat->rows * mat->cols;
+#pragma omp parallel for
     for (int i = 0; i < size; ++i)
     {
         if (i / mat->cols == i % mat->cols)
@@ -336,6 +536,7 @@ int copy_matrix(matrix *dst, matrix *src)
         return -1;
     }
     int size = dst->rows * dst->cols;
+#pragma omp parallel for
     for (int i = 0; i < size; ++i)
     {
         dst->data[i] = src->data[i];
