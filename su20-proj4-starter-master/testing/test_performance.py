@@ -3,7 +3,7 @@ Feel free to add more test classes and/or tests that are not provided by the ske
 Make sure you follow these naming conventions: https://docs.pytest.org/en/reorganize-docs/goodpractices.html#test-discovery
 for your new tests/classes/python files or else they might be skipped.
 """
-from utils import *
+# from utils import *
 import time
 
 """

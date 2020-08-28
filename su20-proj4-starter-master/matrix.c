@@ -144,13 +144,7 @@ void deallocate_matrix(matrix *mat)
 double get(matrix *mat, int row, int col)
 {
     /* TODO: YOUR CODE HERE */
-    int cols = mat->cols;
-    while (mat->parent != NULL)
-    {
-        mat = mat->parent;
-    }
-    cols = mat->cols;
-    return mat->data[row * cols + col];
+    return mat->data[row * mat->cols + col];
 }
 
 /*
@@ -160,13 +154,7 @@ double get(matrix *mat, int row, int col)
 void set(matrix *mat, int row, int col, double val)
 {
     /* TODO: YOUR CODE HERE */
-    int cols = mat->cols;
-    while (mat->parent != NULL)
-    {
-        mat = mat->parent;
-    }
-    cols = mat->cols;
-    mat->data[row * cols + col] = val;
+    mat->data[row * mat->cols + col] = val;
 }
 
 /*

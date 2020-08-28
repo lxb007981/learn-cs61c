@@ -26,4 +26,4 @@ test:
 	$(CC) $(CFLAGS) mat_test.c matrix.c -o test $(LDFLAGS) $(CUNIT) $(PYTHON)
 	./test
 
-.PHONY: test
+.PHONY: test clean install uninstall

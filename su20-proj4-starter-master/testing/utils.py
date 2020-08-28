@@ -3,7 +3,7 @@ This file contains some helper functions for testing
 Provided by CS 61C staff
 """
 
-import dumbpy as dp
+# import dumbpy as dp
 import numc as nc
 import numpy as np
 import hashlib, struct
