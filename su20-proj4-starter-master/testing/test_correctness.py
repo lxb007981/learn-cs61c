@@ -234,16 +234,46 @@ class TestNegCorrectness:
 class TestMulCorrectness:
     def test_small_mul(self):
         # TODO: YOUR CODE HERE
-        pass
-
+        size = 3
+        mat1 = nc.Matrix(size, size, 3.0)
+        mat2 = nc.Matrix(size, size, 2.0)
+        mat3 = mat1 * mat2
+        for i in range(size):
+            for j in range(size):
+                assert mat3[i][j] == 18.0
+        mat3 = mat2 * mat1
+        for i in range(size):
+            for j in range(size):
+                assert mat3[i][j] == 18.0
+    
     def test_medium_mul(self):
         # TODO: YOUR CODE HERE
-        pass
-
+        size = 300
+        mat1 = nc.Matrix(size, size, 3.0)
+        mat2 = nc.Matrix(size, size, 2.0)
+        mat3 = mat1 * mat2
+        for i in range(size):
+            for j in range(size):
+                assert mat3[i][j] == 1800.0
+        mat3 = mat2 * mat1
+        for i in range(size):
+            for j in range(size):
+                assert mat3[i][j] == 1800.0
+    
     def test_large_mul(self):
         # TODO: YOUR CODE HERE
-        pass
-
+        size = 3000
+        mat1 = nc.Matrix(size, size, 3.0)
+        mat2 = nc.Matrix(size, size, 2.0)
+        mat3 = mat1 * mat2
+        for i in range(size):
+            for j in range(size):
+                assert mat3[i][j] == 18000.0
+        mat3 = mat2 * mat1
+        for i in range(size):
+            for j in range(size):
+                assert mat3[i][j] == 18000.0
+    
 class TestPowCorrectness:
     def test_small_pow(self):
         # TODO: YOUR CODE HERE

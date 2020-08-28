@@ -47,6 +47,7 @@ void rand_matrix(matrix *result, unsigned int seed, double low, double high)
         }
     }
     */
+    omp_set_num_threads(8);
 #pragma omp parallel for
     for (int i = 0; i < result->rows * result->cols; ++i)
     {
@@ -172,6 +173,7 @@ void fill_matrix(matrix *mat, double val)
 {
     /* TODO: YOUR CODE HERE */
     long size = (long)(mat->cols * mat->rows);
+    omp_set_num_threads(8);
 #pragma omp parallel for
     for (int i = 0; i < size; ++i)
     {
@@ -313,13 +315,62 @@ int mul_matrix(matrix *result, matrix *mat1, matrix *mat2)
         return -1;
     }
     if (result != mat1 && result != mat2)
-    {
+    { 
+        /*
         fill_matrix(result, 0.0);
         int i, j, k;
         for (j = 0; j < mat1_row; j++)
             for (k = 0; k < mat1_col; k++)
                 for (i = 0; i < mat2_col; i++)
                     result->data[i + j * mat2_col] += mat1->data[k + j * mat1_col] * mat2->data[i + k * mat2_col];
+        */
+        __m256d d1, d2, res;
+        fill_matrix(result, 0.0);
+        int i, j, k;
+        omp_set_num_threads(8);
+#pragma omp parallel for private(i, j, k, d1, d2, res)
+        for (j = 0; j < mat1_row; j++)
+        {
+            for (k = 0; k < mat1_col; k++)
+            {
+                d1 = _mm256_set1_pd(mat1->data[k + j * mat1_col]);
+                for (i = 0; i < mat2_col / 4 * 4; i += 4)
+                {
+                    d2 = _mm256_loadu_pd(&mat2->data[i + k * mat2_col]);
+                    res = _mm256_loadu_pd(&result->data[i + j * mat2_col]);
+                    res = _mm256_fmadd_pd(d1, d2, res);
+                    _mm256_storeu_pd(&result->data[i + j * mat2_col], res);
+                }
+                for (; i < mat2_col; ++i)
+                {
+                    result->data[i + j * mat2_col] += mat1->data[k + j * mat1_col] * mat2->data[i + k * mat2_col];
+                }
+            }
+        }
+
+        /* not good
+        for (j = 0; j < mat1_row; j++)
+        {
+            for (i = 0; i < mat2_col / 4 * 4; i += 4)
+            {
+                res = _mm256_set1_pd(0.0);
+                for (k = 0; k < mat1_col; k++)
+                {
+                    d1 = _mm256_set1_pd(mat1->data[k + j * mat1_col]);
+                    d2 = _mm256_loadu_pd(&mat2->data[i + k * mat2_col]);
+                    res = _mm256_fmadd_pd(d1, d2, res);
+                }
+                _mm256_storeu_pd(&result->data[i + j * mat2_col], res);
+            }
+            for (; i < mat2_col; ++i)
+            {
+                for (k = 0; k < mat1_col; k++)
+                {
+                    result->data[i + j * mat2_col] += mat1->data[k + j * mat1_col] * mat2->data[i + k * mat2_col];
+                }
+            }
+        }
+        */
     }
     else
     { // supports A = AB type multiplication
@@ -332,7 +383,8 @@ int mul_matrix(matrix *result, matrix *mat1, matrix *mat2)
             free(tmp);
             return 0;
         }
-        else return -1;
+        else
+            return -1;
     }
 
     return 0;
@@ -372,18 +424,15 @@ int pow_matrix(matrix *result, matrix *mat, int pow)
         }
         set_eye(results[i]);
     }
+    omp_set_num_threads(8);
 #pragma omp parallel
     {
 #pragma omp for
         for (int i = 0; i < pow; i++)
             mul_matrix(results[omp_get_thread_num()], results[omp_get_thread_num()], mat);
 #pragma omp critical
-        for (int i = 0; i < max_num_of_threads; ++i)
-        {
-            mul_matrix(result, result, results[i]);
-        }
+        mul_matrix(result, result, results[omp_get_thread_num()]);
     }
-    
     return 0;
 }
 
@@ -516,6 +565,7 @@ int abs_matrix(matrix *result, matrix *mat)
 void set_eye(matrix *mat)
 {
     int size = mat->rows * mat->cols;
+    omp_set_num_threads(8);
 #pragma omp parallel for
     for (int i = 0; i < size; ++i)
     {
@@ -536,6 +586,7 @@ int copy_matrix(matrix *dst, matrix *src)
         return -1;
     }
     int size = dst->rows * dst->cols;
+    omp_set_num_threads(8);
 #pragma omp parallel for
     for (int i = 0; i < size; ++i)
     {
