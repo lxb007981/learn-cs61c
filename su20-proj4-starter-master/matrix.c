@@ -541,7 +541,8 @@ int abs_matrix(matrix *result, matrix *mat)
 #pragma omp for
         for (int i = 0; i <= ompSize; i += stride)
         {
-            /* naive implementation
+            /* naive implementation */
+            /*
             d1 = _mm256_loadu_pd(&mat1_d[i]);
             mask = _mm256_cmp_pd(zero, d1, 14);
             negMask = _mm256_and_pd(neg, mask);
@@ -567,22 +568,22 @@ int abs_matrix(matrix *result, matrix *mat)
             res4 = _mm256_max_pd(d1, res4);
             */
 
-           // bit trick
+            /* bit trick */
             d1 = _mm256_loadu_pd(&mat1_d[i]);
             mask = _mm256_set1_pd(-0.0);
-            res1 = _mm256_and_pd(d1, mask);
+            res1 = _mm256_andnot_pd(mask, d1);
 
             d1 = _mm256_loadu_pd(&mat1_d[i]);
             mask = _mm256_set1_pd(-0.0);
-            res2 = _mm256_and_pd(d1, mask);
+            res2 = _mm256_andnot_pd(mask, d1);
 
             d1 = _mm256_loadu_pd(&mat1_d[i]);
             mask = _mm256_set1_pd(-0.0);
-            res3 = _mm256_and_pd(d1, mask);
+            res3 = _mm256_andnot_pd(mask, d1);
 
             d1 = _mm256_loadu_pd(&mat1_d[i]);
             mask = _mm256_set1_pd(-0.0);
-            res4 = _mm256_and_pd(d1, mask);
+            res4 = _mm256_andnot_pd(mask, d1);
 
             _mm256_storeu_pd(&result_d[i], res1);
             _mm256_storeu_pd(&result_d[i + 4], res2);
@@ -590,7 +591,7 @@ int abs_matrix(matrix *result, matrix *mat)
             _mm256_storeu_pd(&result_d[i + 12], res4);
         }
     }
-    int tmp;
+    double tmp;
     for (int k = size / stride * stride; k < size; ++k)
     {
         tmp = mat1_d[k];
